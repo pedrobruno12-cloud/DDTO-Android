@@ -1,7 +1,6 @@
 name: Android Build DDTO+
 on: [pull_request, workflow_dispatch]
 
-# Força o uso do Node 24 para evitar os avisos de depreciação
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -21,7 +20,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17' # Atualizado para Java 17 (melhor suporte no Node 24)
+          java-version: '17'
 
       - name: Setup Android NDK
         uses: nttld/setup-ndk@v1
@@ -31,7 +30,6 @@ jobs:
       - name: Install Haxelibs
         run: |
           haxelib setup ~/haxelib
-          haxelib --global update haxelib
           haxelib install lime 7.9.0 --quiet
           haxelib install openfl 9.1.0 --quiet
           haxelib install flixel 4.11.0 --quiet
@@ -46,12 +44,19 @@ jobs:
           haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --quiet
           haxelib git extension-webview https://github.com/TeamX02/extension-webview.git --quiet
 
-      - name: Patch Code Errors
+      - name: Patch Dependencies and Code
         run: |
-          # Correção refinada: Remove apenas o $ problemático sem quebrar strings
+          # 1. Resolve "Class FlxG has no field mouse" injetando uma condicional na biblioteca flxanimate
+          sed -i 's/FlxG.mouse/null/g' ~/haxelib/flxanimate/git/flxanimate/animate/FlxAnim.hx
+          
+          # 2. Resolve "Reification $ is not allowed" no KeyBindSubstate
+          # Remove o $ apenas quando ele precede parênteses ou chaves de interpolação
           sed -i 's/\$//g' source/KeyBindSubstate.hx
-          # Garante que a linha 99 tenha o ponto e vírgula se o sed o removeu
-          sed -i '99s/[^;]$/&;/' source/KeyBindSubstate.hx
+          
+          # 3. Garante que a linha 99 termine com ponto e vírgula
+          sed -i '99s/$/;/' source/KeyBindSubstate.hx
+          # Remove duplicatas de ;; caso existam
+          sed -i 's/;;/;/g' source/KeyBindSubstate.hx
 
       - name: Configure Lime
         run: |
@@ -62,7 +67,6 @@ jobs:
           haxelib run lime config ANDROID_SETUP true
 
       - name: Compile
-        # -D FLX_NO_MOUSE resolve o erro de "Class FlxG has no field mouse" no Android
         run: haxelib run lime build android -64 -release -D lime-threads -D FLX_NO_MOUSE -w
 
       - name: Upload Artifact
