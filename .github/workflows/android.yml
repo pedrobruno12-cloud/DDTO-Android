@@ -36,10 +36,17 @@ jobs:
           haxelib install hscript --quiet
           haxelib install hxcpp 4.2.1 --quiet
           haxelib install firetongue --quiet
-          haxelib git flxanimate https://github.com/Dot-Stuff/flxanimate --quiet
+          haxelib git flxanimate https://github.com/Dot-Stuff/flxanimate 1.2.0 --quiet
           haxelib git extension-webm https://github.com/KadeDev/extension-webm --quiet
           haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --quiet
           haxelib git extension-webview https://github.com/TeamX02/extension-webview.git --quiet
+
+      - name: Patch Code Errors
+        run: |
+          # Corrige o erro "Reification $ is not allowed" no arquivo de Keybinds
+          sed -i 's/\$//g' source/KeyBindSubstate.hx
+          # Garante que o diretório de exportação existe
+          mkdir -p export/release/android/bin
 
       - name: Configure Lime
         run: |
@@ -50,11 +57,10 @@ jobs:
           haxelib run lime config ANDROID_SETUP true
 
       - name: Compile
-        # Adicionei flags para silenciar avisos e ignorar erros de deprecation
-        run: haxelib run lime build android -64 -release -D lime-threads -w -WDeprecatedEnumAbstract
+        run: haxelib run lime build android -64 -release -D lime-threads -w
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DDTO-Plus-Android
+          name: DDTO-Plus-Android-Build
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
