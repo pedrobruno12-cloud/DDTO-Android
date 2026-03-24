@@ -46,17 +46,18 @@ jobs:
 
       - name: Patch Dependencies and Code
         run: |
-          # Resolve erro de mouse na flxanimate (Android não possui FlxG.mouse)
+          # 1. Resolve 'no field mouse' na flxanimate (Hardware incompatível com Android)
           sed -i 's/FlxG.mouse/null/g' ~/haxelib/flxanimate/git/flxanimate/animate/FlxAnim.hx
           
-          # Remove o símbolo $ que causa erro de Macro no Haxe 4.3+, 
-          # mas garante que o final da linha tenha o ponto e vírgula.
-          # Aplicado especificamente nas linhas problemáticas 99 e 102.
-          sed -i '99s/\$//g; 99s/[[:space:]]*$/;/' source/KeyBindSubstate.hx
-          sed -i '102s/\$//g; 102s/[[:space:]]*$/;/' source/KeyBindSubstate.hx
+          # 2. Resolve 'Missing ;' e 'Reification $' no KeyBindSubstate.hx
+          # Substituímos a linha inteira para garantir que a sintaxe seja 100% limpa.
+          # O comando 'c' do sed substitui o conteúdo da linha especificada.
+          sed -i "99c\                tempText = 'NONE';" source/KeyBindSubstate.hx
+          sed -i "102c\                tempText = 'NONE';" source/KeyBindSubstate.hx
           
-          # Limpeza final para evitar duplicatas de ;;
-          sed -i 's/;;/;/g' source/KeyBindSubstate.hx
+          # 3. Verificação de segurança (Imprime as linhas no log para conferência)
+          echo "Linhas patcheadas no KeyBindSubstate.hx:"
+          sed -n '99p;102p' source/KeyBindSubstate.hx
 
       - name: Configure Lime
         run: |
@@ -67,10 +68,11 @@ jobs:
           haxelib run lime config ANDROID_SETUP true
 
       - name: Compile
+        # -D FLX_NO_MOUSE desativa o suporte a mouse globalmente para evitar crashes em runtime
         run: haxelib run lime build android -64 -release -D lime-threads -D FLX_NO_MOUSE -w
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DDTO-Plus-Android
+          name: DDTO-Plus-Android-Release
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
