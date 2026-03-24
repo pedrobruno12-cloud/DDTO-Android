@@ -2,6 +2,7 @@ name: Android Build DDTO+
 on: [pull_request, workflow_dispatch]
 
 env:
+  # Garante compatibilidade com as versões mais recentes do Node no Runner do GitHub
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -39,6 +40,7 @@ jobs:
           haxelib install hscript --quiet
           haxelib install hxcpp 4.2.1 --quiet
           haxelib install firetongue --quiet
+          # Bibliotecas do GitHub (Versões específicas para evitar erros de API)
           haxelib git flxanimate https://github.com/Dot-Stuff/flxanimate tags/v1.2.0 --quiet
           haxelib git extension-webm https://github.com/KadeDev/extension-webm --quiet
           haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --quiet
@@ -46,17 +48,16 @@ jobs:
 
       - name: Patch Dependencies and Code
         run: |
-          # 1. Resolve 'no field mouse' na flxanimate (Hardware incompatível com Android)
+          # 1. Corrige erro de mouse na flxanimate (Android não tem ponteiro nativo)
           sed -i 's/FlxG.mouse/null/g' ~/haxelib/flxanimate/git/flxanimate/animate/FlxAnim.hx
           
-          # 2. Resolve 'Missing ;' e 'Reification $' no KeyBindSubstate.hx
-          # Substituímos a linha inteira para garantir que a sintaxe seja 100% limpa.
-          # O comando 'c' do sed substitui o conteúdo da linha especificada.
+          # 2. Corrige o erro "Missing ;" e conflito de Macro ($) no KeyBindSubstate.hx
+          # Substituímos a linha inteira para garantir que o Haxe 4.3 não encontre caracteres residuais.
           sed -i "99c\                tempText = 'NONE';" source/KeyBindSubstate.hx
           sed -i "102c\                tempText = 'NONE';" source/KeyBindSubstate.hx
           
-          # 3. Verificação de segurança (Imprime as linhas no log para conferência)
-          echo "Linhas patcheadas no KeyBindSubstate.hx:"
+          # 3. Log de conferência (aparece no console do GitHub)
+          echo "Conferindo linhas patcheadas no KeyBindSubstate.hx:"
           sed -n '99p;102p' source/KeyBindSubstate.hx
 
       - name: Configure Lime
@@ -68,11 +69,12 @@ jobs:
           haxelib run lime config ANDROID_SETUP true
 
       - name: Compile
-        # -D FLX_NO_MOUSE desativa o suporte a mouse globalmente para evitar crashes em runtime
+        # -64 compila para arquitetura moderna (ARM64) requerida pela Play Store
+        # -D FLX_NO_MOUSE desativa interações de mouse que quebram no toque
         run: haxelib run lime build android -64 -release -D lime-threads -D FLX_NO_MOUSE -w
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DDTO-Plus-Android-Release
+          name: DDTO-Plus-Android-APK
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
