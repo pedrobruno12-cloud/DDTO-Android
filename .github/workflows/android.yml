@@ -11,7 +11,7 @@ jobs:
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v1
         with:
-          haxe-version: 4.2.5
+          haxe-version: 4.3.6
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
@@ -36,7 +36,7 @@ jobs:
           haxelib install hscript --quiet
           haxelib install hxcpp 4.2.1 --quiet
           haxelib install firetongue --quiet
-          haxelib install flxanimate --quiet
+          haxelib git flxanimate https://github.com/Dot-Stuff/flxanimate --quiet
           haxelib git extension-webm https://github.com/KadeDev/extension-webm --quiet
           haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --quiet
           haxelib git extension-webview https://github.com/TeamX02/extension-webview.git --quiet
@@ -50,7 +50,7 @@ jobs:
           haxelib run lime config ANDROID_SETUP true
 
       - name: Compile
-        run: haxelib run lime build android -64 -release
+        run: haxelib run lime build android -64 -release -D lime-threads
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
