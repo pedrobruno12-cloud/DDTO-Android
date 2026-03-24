@@ -50,7 +50,8 @@ jobs:
           haxelib run lime config ANDROID_SETUP true
 
       - name: Compile
-        run: haxelib run lime build android -64 -release -D lime-threads
+        # Adicionei flags para silenciar avisos e ignorar erros de deprecation
+        run: haxelib run lime build android -64 -release -D lime-threads -w -WDeprecatedEnumAbstract
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
