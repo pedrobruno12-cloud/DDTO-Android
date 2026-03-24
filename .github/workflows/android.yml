@@ -2,7 +2,7 @@ name: Android Build DDTO+
 on: [pull_request, workflow_dispatch]
 
 env:
-  # Garante compatibilidade com as versões mais recentes do Node no Runner do GitHub
+  # Melhora a compatibilidade com as ferramentas do Runner do GitHub
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -40,29 +40,28 @@ jobs:
           haxelib install hscript --quiet
           haxelib install hxcpp 4.2.1 --quiet
           haxelib install firetongue --quiet
-          # Bibliotecas do GitHub (Versões específicas para evitar erros de API)
+          # Bibliotecas específicas do GitHub para DDTO+
           haxelib git flxanimate https://github.com/Dot-Stuff/flxanimate tags/v1.2.0 --quiet
           haxelib git extension-webm https://github.com/KadeDev/extension-webm --quiet
           haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --quiet
           haxelib git extension-webview https://github.com/TeamX02/extension-webview.git --quiet
-          
+
       - name: Patch Dependencies and Code
         run: |
-          # 1. Corrige erro de mouse na flxanimate
+          # 1. Resolve erro de mouse na flxanimate (Hardware incompatível com Android)
           sed -i 's/FlxG.mouse/null/g' ~/haxelib/flxanimate/git/flxanimate/animate/FlxAnim.hx
           
-          # 2. Reconstrução total das linhas 99 e 102 no KeyBindSubstate.hx
-          # O comando 'c' (change) substitui a linha inteira, eliminando lixo de memória ou caracteres $
+          # 2. Resolve o erro 'Missing ;' e 'Reification $' no KeyBindSubstate.hx
+          # O comando 'c' substitui a linha inteira por uma nova, garantindo sintaxe limpa.
           sed -i "99c\                tempText = 'NONE';" source/KeyBindSubstate.hx
           sed -i "102c\                tempText = 'NONE';" source/KeyBindSubstate.hx
           
-          # 3. Garante que não existam espaços invisíveis que quebrem o parser do Haxe
+          # 3. Limpeza de espaços residuais que podem confundir o compilador
           sed -i 's/[[:space:]]*$//' source/KeyBindSubstate.hx
           
-          # 4. Debug: Mostra como as linhas ficaram para você conferir no log do GitHub
-          echo "--- VERIFICAÇÃO DE SINTAXE ---"
-          sed -n '98,104p' source/KeyBindSubstate.hx
-          echo "------------------------------"
+          # 4. Debug visual no log do GitHub (para conferência)
+          echo "Verificando patch no KeyBindSubstate.hx:"
+          sed -n '98,103p' source/KeyBindSubstate.hx
 
       - name: Configure Lime
         run: |
@@ -73,12 +72,12 @@ jobs:
           haxelib run lime config ANDROID_SETUP true
 
       - name: Compile
-        # -64 compila para arquitetura moderna (ARM64) requerida pela Play Store
-        # -D FLX_NO_MOUSE desativa interações de mouse que quebram no toque
+        # -64 compila para ARM64 (padrão atual)
+        # -D FLX_NO_MOUSE desativa o mouse para evitar erros de toque no Android
         run: haxelib run lime build android -64 -release -D lime-threads -D FLX_NO_MOUSE -w
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DDTO-Plus-Android-APK
+          name: DDTO-Plus-Android-Release
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
