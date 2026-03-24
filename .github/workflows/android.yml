@@ -30,7 +30,6 @@ jobs:
       - name: Install Haxelibs
         run: |
           haxelib setup ~/haxelib
-          haxelib --global update haxelib
           haxelib install lime 7.9.0 --quiet
           haxelib install openfl 9.1.0 --quiet
           haxelib install flixel 4.11.0 --quiet
@@ -47,17 +46,17 @@ jobs:
 
       - name: Patch Dependencies and Code
         run: |
-          # 1. Resolve erro de mouse na flxanimate (Android não possui FlxG.mouse)
+          # Resolve erro de mouse na flxanimate (Android não possui FlxG.mouse)
           sed -i 's/FlxG.mouse/null/g' ~/haxelib/flxanimate/git/flxanimate/animate/FlxAnim.hx
           
-          # 2. Resolve "Reification $" no KeyBindSubstate.hx sem quebrar a sintaxe
-          # Remove o caractere $ especificamente nas linhas 99 e 102
-          sed -i '99s/\$//g' source/KeyBindSubstate.hx
-          sed -i '102s/\$//g' source/KeyBindSubstate.hx
+          # Remove o símbolo $ que causa erro de Macro no Haxe 4.3+, 
+          # mas garante que o final da linha tenha o ponto e vírgula.
+          # Aplicado especificamente nas linhas problemáticas 99 e 102.
+          sed -i '99s/\$//g; 99s/[[:space:]]*$/;/' source/KeyBindSubstate.hx
+          sed -i '102s/\$//g; 102s/[[:space:]]*$/;/' source/KeyBindSubstate.hx
           
-          # 3. Garante o ponto e vírgula no final da linha 99 (evita o erro Missing ;)
-          # Remove espaços no fim da linha e adiciona o ; se ele não existir
-          sed -i '99s/[[:space:];]*$/;/' source/KeyBindSubstate.hx
+          # Limpeza final para evitar duplicatas de ;;
+          sed -i 's/;;/;/g' source/KeyBindSubstate.hx
 
       - name: Configure Lime
         run: |
@@ -68,7 +67,6 @@ jobs:
           haxelib run lime config ANDROID_SETUP true
 
       - name: Compile
-        # -D FLX_NO_MOUSE desativa inputs de mouse no motor para evitar conflitos no Android
         run: haxelib run lime build android -64 -release -D lime-threads -D FLX_NO_MOUSE -w
 
       - name: Upload Artifact
