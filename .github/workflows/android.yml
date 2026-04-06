@@ -2,6 +2,7 @@ name: Android Build DDTO+
 on: [pull_request, workflow_dispatch]
 
 env:
+  # Melhora a compatibilidade com as ferramentas do Runner do GitHub
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -25,7 +26,7 @@ jobs:
       - name: Setup Android NDK
         uses: nttld/setup-ndk@v1
         with:
-          # r21e é a mais estável para Haxe 4.x/Lime 7.9.0
+          # r21e é a versão "mágica" para projetos HaxeFlixel dessa era.
           ndk-version: r21e 
 
       - name: Install Haxelibs
@@ -40,6 +41,7 @@ jobs:
           haxelib install hscript --quiet
           haxelib install hxcpp 4.2.1 --quiet
           haxelib install firetongue --quiet
+          # Bibliotecas específicas do DDTO+
           haxelib git flxanimate https://github.com/Dot-Stuff/flxanimate tags/v1.2.0 --quiet
           haxelib git extension-webm https://github.com/KadeDev/extension-webm --quiet
           haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --quiet
@@ -50,12 +52,14 @@ jobs:
           # 1. Resolve erro de mouse na flxanimate
           sed -i 's/FlxG.mouse/null/g' ~/haxelib/flxanimate/git/flxanimate/animate/FlxAnim.hx
           
-          # 2. Remove o caractere '$' (Reification error)
+          # 2. Remove o caractere '$' que causa erro de Reification no Haxe 4.3+
           sed -i 's/\$//g' source/KeyBindSubstate.hx
           
-          # 3. Limpeza de builds e arquivos residuais do Windows
-          sed -i 's/\r//g' source/KeyBindSubstate.hx
+          # 3. Limpeza CRÍTICA: Remove objetos antigos para evitar o erro de PCH
           rm -rf export/release/android/obj
+          
+          # 4. Normaliza quebras de linha (Windows para Linux)
+          sed -i 's/\r//g' source/KeyBindSubstate.hx
 
       - name: Configure Lime
         run: |
@@ -67,13 +71,13 @@ jobs:
 
       - name: Compile
         run: |
-          # Adicionadas flags -D HXCPP_CLANG e -D android para evitar erro de typeinfo
+          # O segredo contra 'typeinfo' está nas flags -D HXCPP_CLANG e -D android
           haxelib run lime build android -64 -release \
-          -D lime-threads \
-          -D FLX_NO_MOUSE \
-          -D HXCPP_CLANG \
-          -D android \
-          -w
+            -D lime-threads \
+            -D FLX_NO_MOUSE \
+            -D HXCPP_CLANG \
+            -D android \
+            -w
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
