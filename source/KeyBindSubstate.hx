@@ -94,17 +94,15 @@ class KeyBindSubstate extends MusicBeatSubstate
 
 	override function update(elapsed:Float)
 	{
-		// CORREÇÃO: Removido o '$' que causava erro de Macro/Sintaxe
-		var desc:String = LangUtil.getString('descKeyBindControls', 'option');
-		var extra:String = "";
-
+		// CORREÇÃO: Limpando a lógica de exibição de texto para evitar erros de interpolação ($) e chaves
+		var baseInfo:String = LangUtil.getString('descKeyBindControls', 'option');
+		
 		#if android
-		if (lastKey != "") {
-			extra = "\n" + LangUtil.getString('descKeyBindBlacklist', 'option', lastKey);
-		}
+		var blacklistInfo:String = (lastKey != "") ? "\n" + LangUtil.getString('descKeyBindBlacklist', 'option', lastKey) : "";
+		infoText.text = baseInfo + blacklistInfo;
+		#else
+		infoText.text = baseInfo;
 		#end
-
-		infoText.text = desc + extra;
 
 		if (acceptInput)
 		{
@@ -133,7 +131,7 @@ class KeyBindSubstate extends MusicBeatSubstate
 						quit();
 					}
 					else if (FlxG.keys.justPressed.BACKSPACE #if android || FlxG.android.justReleased.BACK #end)
-					{ 
+					{
 						reset();
 					}
 
@@ -205,7 +203,7 @@ class KeyBindSubstate extends MusicBeatSubstate
 
 	function reset()
 	{
-		// CORREÇÃO: keys só tem 4 elementos (0 a 3). 
+		// CORREÇÃO: keys tem tamanho 4 (índices 0-3), o loop deve ser condizente
 		for (i in 0...4)
 		{
 			keys[i] = defaultKeys[i];
