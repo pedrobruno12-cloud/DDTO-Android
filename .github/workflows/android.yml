@@ -51,17 +51,12 @@ jobs:
           # 1. Resolve erro de mouse na flxanimate (Hardware incompatível com Android)
           sed -i 's/FlxG.mouse/null/g' ~/haxelib/flxanimate/git/flxanimate/animate/FlxAnim.hx
           
-          # 2. Resolve o erro 'Missing ;' e 'Reification $' no KeyBindSubstate.hx
-          # O comando 'c' substitui a linha inteira por uma nova, garantindo sintaxe limpa.
-          sed -i "99c\                tempText = 'NONE';" source/KeyBindSubstate.hx
-          sed -i "102c\                tempText = 'NONE';" source/KeyBindSubstate.hx
+          # 2. Remove o caractere '$' que causa o erro de Reification no Haxe 4.3+
+          # Isso limpa o arquivo KeyBindSubstate.hx sem quebrar as chaves { }
+          sed -i 's/\$//g' source/KeyBindSubstate.hx
           
-          # 3. Limpeza de espaços residuais que podem confundir o compilador
-          sed -i 's/[[:space:]]*$//' source/KeyBindSubstate.hx
-          
-          # 4. Debug visual no log do GitHub (para conferência)
-          echo "Verificando patch no KeyBindSubstate.hx:"
-          sed -n '98,103p' source/KeyBindSubstate.hx
+          # 3. Garante que quebras de linha do Windows (\r) não quebrem o compilador Linux
+          sed -i 's/\r//g' source/KeyBindSubstate.hx
 
       - name: Configure Lime
         run: |
@@ -72,7 +67,7 @@ jobs:
           haxelib run lime config ANDROID_SETUP true
 
       - name: Compile
-        # -64 compila para ARM64 (padrão atual)
+        # -64 compila para ARM64 (padrão da Play Store e celulares modernos)
         # -D FLX_NO_MOUSE desativa o mouse para evitar erros de toque no Android
         run: haxelib run lime build android -64 -release -D lime-threads -D FLX_NO_MOUSE -w
 
