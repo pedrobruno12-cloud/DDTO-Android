@@ -94,12 +94,17 @@ class KeyBindSubstate extends MusicBeatSubstate
 
 	override function update(elapsed:Float)
 	{
-		infoText.text =
-			#if android
-			${LangUtil.getString('descKeyBindControls', 'option')} #else
-			LangUtil.getString('descKeyBindControls', 'option') #end
-			+ '\n'
-			+ #if android ${lastKey != '' ? LangUtil.getString('descKeyBindBlacklist', 'option', lastKey) : ''} #else "" #end; // meu pc nao compilava por causa de algo aqui
+		// CORREÇÃO: Removido o '$' que causava erro de Macro/Sintaxe
+		var desc:String = LangUtil.getString('descKeyBindControls', 'option');
+		var extra:String = "";
+
+		#if android
+		if (lastKey != "") {
+			extra = "\n" + LangUtil.getString('descKeyBindBlacklist', 'option', lastKey);
+		}
+		#end
+
+		infoText.text = desc + extra;
 
 		if (acceptInput)
 		{
@@ -128,7 +133,7 @@ class KeyBindSubstate extends MusicBeatSubstate
 						quit();
 					}
 					else if (FlxG.keys.justPressed.BACKSPACE #if android || FlxG.android.justReleased.BACK #end)
-					{ //Troxa
+					{ 
 						reset();
 					}
 
@@ -200,7 +205,8 @@ class KeyBindSubstate extends MusicBeatSubstate
 
 	function reset()
 	{
-		for (i in 0...5)
+		// CORREÇÃO: keys só tem 4 elementos (0 a 3). 
+		for (i in 0...4)
 		{
 			keys[i] = defaultKeys[i];
 		}
