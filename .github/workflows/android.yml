@@ -2,7 +2,6 @@ name: Android Build DDTO+
 on: [pull_request, workflow_dispatch]
 
 env:
-  # Melhora a compatibilidade com as ferramentas do Runner do GitHub
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -26,7 +25,8 @@ jobs:
       - name: Setup Android NDK
         uses: nttld/setup-ndk@v1
         with:
-          ndk-version: r21e
+          # r21e é a mais estável para Haxe 4.x/Lime 7.9.0
+          ndk-version: r21e 
 
       - name: Install Haxelibs
         run: |
@@ -40,7 +40,6 @@ jobs:
           haxelib install hscript --quiet
           haxelib install hxcpp 4.2.1 --quiet
           haxelib install firetongue --quiet
-          # Bibliotecas específicas do GitHub para DDTO+
           haxelib git flxanimate https://github.com/Dot-Stuff/flxanimate tags/v1.2.0 --quiet
           haxelib git extension-webm https://github.com/KadeDev/extension-webm --quiet
           haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --quiet
@@ -48,15 +47,15 @@ jobs:
 
       - name: Patch Dependencies and Code
         run: |
-          # 1. Resolve erro de mouse na flxanimate (Hardware incompatível com Android)
+          # 1. Resolve erro de mouse na flxanimate
           sed -i 's/FlxG.mouse/null/g' ~/haxelib/flxanimate/git/flxanimate/animate/FlxAnim.hx
           
-          # 2. Remove o caractere '$' que causa o erro de Reification no Haxe 4.3+
-          # Isso limpa o arquivo KeyBindSubstate.hx sem quebrar as chaves { }
+          # 2. Remove o caractere '$' (Reification error)
           sed -i 's/\$//g' source/KeyBindSubstate.hx
           
-          # 3. Garante que quebras de linha do Windows (\r) não quebrem o compilador Linux
+          # 3. Limpeza de builds e arquivos residuais do Windows
           sed -i 's/\r//g' source/KeyBindSubstate.hx
+          rm -rf export/release/android/obj
 
       - name: Configure Lime
         run: |
@@ -67,9 +66,14 @@ jobs:
           haxelib run lime config ANDROID_SETUP true
 
       - name: Compile
-        # -64 compila para ARM64 (padrão da Play Store e celulares modernos)
-        # -D FLX_NO_MOUSE desativa o mouse para evitar erros de toque no Android
-        run: haxelib run lime build android -64 -release -D lime-threads -D FLX_NO_MOUSE -w
+        run: |
+          # Adicionadas flags -D HXCPP_CLANG e -D android para evitar erro de typeinfo
+          haxelib run lime build android -64 -release \
+          -D lime-threads \
+          -D FLX_NO_MOUSE \
+          -D HXCPP_CLANG \
+          -D android \
+          -w
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
