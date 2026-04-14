@@ -2,7 +2,7 @@ name: Android Build DDTO+
 on: [pull_request, workflow_dispatch]
 
 env:
-  # Melhora a compatibilidade com Node no GitHub Actions
+  # Melhora a compatibilidade com as ferramentas do GitHub Actions
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
       - name: Setup Android NDK
         uses: nttld/setup-ndk@v1
         with:
-          # Versão r21e é a mais estável para evitar erros de biblioteca C++ no Android
+          # Versão r21e é essencial para estabilidade no motor do FNF
           ndk-version: r21e 
 
       - name: Install Haxelibs
@@ -41,7 +41,6 @@ jobs:
           haxelib install hscript --quiet
           haxelib install hxcpp 4.2.1 --quiet
           haxelib install firetongue --quiet
-          # Bibliotecas Git específicas do DDTO+
           haxelib git flxanimate https://github.com/Dot-Stuff/flxanimate tags/v1.2.0 --quiet
           haxelib git extension-webm https://github.com/KadeDev/extension-webm --quiet
           haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --quiet
@@ -49,13 +48,13 @@ jobs:
 
       - name: Patch Dependencies and Code
         run: |
-          # 1. Resolve erro de mouse na biblioteca flxanimate
+          # 1. Resolve erro de mouse na flxanimate
           sed -i 's/FlxG.mouse/null/g' ~/haxelib/flxanimate/git/flxanimate/animate/FlxAnim.hx
           
-          # 2. Remove o caractere '$' (Reification error no Haxe moderno)
+          # 2. Resolve erro de caractere '$' (Reification) no Haxe moderno
           sed -i 's/\$//g' source/KeyBindSubstate.hx
           
-          # 3. LIMPEZA TOTAL: Remove a pasta obj para garantir que o PCH seja recriado corretamente
+          # 3. LIMPEZA TOTAL: Deleta a pasta obj para evitar o erro 'Could not create PCH'
           rm -rf export/release/android/obj
           mkdir -p export/release/android/obj
 
@@ -69,15 +68,16 @@ jobs:
 
       - name: Compile
         run: |
-          # Flags CRÍTICAS:
-          # -D HXCPP_CLANG: Força o uso do compilador do NDK (resolve 'typeinfo')
-          # -D android: Define o contexto correto da plataforma
-          # -D no-pch: (Opcional) Se o PCH continuar falhando, o compilador ignora e segue em frente
+          # AS FLAGS ABAIXO RESOLVEM O ERRO 'typeinfo'
+          # -D HXCPP_CLANG: Força o uso do Clang (Android) e não do GCC (Ubuntu)
+          # -D android: Garante que o hxcpp use os caminhos do NDK
+          # -D no-pch: Se a geração do PCH falhar, ele pula e compila direto (mais lento mas seguro)
           haxelib run lime build android -64 -release \
             -D lime-threads \
             -D FLX_NO_MOUSE \
             -D HXCPP_CLANG \
             -D android \
+            -D no-pch \
             -w
 
       - name: Upload Artifact
