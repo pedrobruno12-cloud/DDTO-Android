@@ -2,7 +2,7 @@ name: Android Build DDTO+
 on: [pull_request, workflow_dispatch]
 
 env:
-  # Garante compatibilidade com as ações de Node do Runner
+  # Melhora a compatibilidade com Node no GitHub Actions
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
       - name: Setup Android NDK
         uses: nttld/setup-ndk@v1
         with:
-          # r21e é o padrão de ouro para estabilidade com Lime 7.9.0
+          # Versão r21e é a mais estável para evitar erros de biblioteca C++ no Android
           ndk-version: r21e 
 
       - name: Install Haxelibs
@@ -41,7 +41,7 @@ jobs:
           haxelib install hscript --quiet
           haxelib install hxcpp 4.2.1 --quiet
           haxelib install firetongue --quiet
-          # Bibliotecas específicas do DDTO+
+          # Bibliotecas Git específicas do DDTO+
           haxelib git flxanimate https://github.com/Dot-Stuff/flxanimate tags/v1.2.0 --quiet
           haxelib git extension-webm https://github.com/KadeDev/extension-webm --quiet
           haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --quiet
@@ -49,17 +49,15 @@ jobs:
 
       - name: Patch Dependencies and Code
         run: |
-          # 1. Resolve erro de mouse na flxanimate
+          # 1. Resolve erro de mouse na biblioteca flxanimate
           sed -i 's/FlxG.mouse/null/g' ~/haxelib/flxanimate/git/flxanimate/animate/FlxAnim.hx
           
-          # 2. Remove o caractere '$' que causa Reification error no Haxe 4.3+
+          # 2. Remove o caractere '$' (Reification error no Haxe moderno)
           sed -i 's/\$//g' source/KeyBindSubstate.hx
           
-          # 3. Limpeza CRÍTICA: O erro 'Could not create PCH' é causado por lixo de builds anteriores
+          # 3. LIMPEZA TOTAL: Remove a pasta obj para garantir que o PCH seja recriado corretamente
           rm -rf export/release/android/obj
-          
-          # 4. Normaliza quebras de linha (Windows -> Linux)
-          sed -i 's/\r//g' source/KeyBindSubstate.hx
+          mkdir -p export/release/android/obj
 
       - name: Configure Lime
         run: |
@@ -71,8 +69,10 @@ jobs:
 
       - name: Compile
         run: |
-          # O segredo contra 'typeinfo' está nas flags -D HXCPP_CLANG e -D android
-          # Elas forçam o compilador a usar o libc++ correto do NDK
+          # Flags CRÍTICAS:
+          # -D HXCPP_CLANG: Força o uso do compilador do NDK (resolve 'typeinfo')
+          # -D android: Define o contexto correto da plataforma
+          # -D no-pch: (Opcional) Se o PCH continuar falhando, o compilador ignora e segue em frente
           haxelib run lime build android -64 -release \
             -D lime-threads \
             -D FLX_NO_MOUSE \
